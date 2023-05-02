@@ -8,8 +8,8 @@ from sklearn.model_selection import train_test_split
 # membaca dataset
 df = pd.read_csv('IHSG.csv')
 
-# mengubah format tanggal menjadi string
-df['Date'] = df['Date'].astype(str)
+# mengubah format tanggal menjadi datetime
+df['Date'] = pd.to_datetime(df['Date'])
 
 # mengubah tipe data kolom 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume' menjadi numerik
 df[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']] = df[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']].apply(pd.to_numeric, errors='coerce')
@@ -23,7 +23,6 @@ train_df, test_df = train_test_split(df, test_size=0.2, shuffle=False)
 # normalisasi data latih dan data uji
 train_min = train_df.min()
 train_max = train_df.max()
-train_min['Date'] = 0
 train_df = (train_df - train_min) / (train_max - train_min)
 test_df = (test_df - train_min) / (train_max - train_min)
 
@@ -44,7 +43,7 @@ model.compile(loss='mse', optimizer='adam')
 model.fit(train_x, train_y, epochs=100, batch_size=16, verbose=1)
 
 # menyimpan model
-model.save('best_model.h5')
+model.save('best_model1.h5')
 
 # menghitung akurasi dan rmse
 train_pred = model.predict(train_x)

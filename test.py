@@ -1,61 +1,42 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from keras.models import load_model
-from sklearn.preprocessing import MinMaxScaler
+import matplotlib.pyplot as plt
 
-# Load dataset
+# membaca dataset
 df = pd.read_csv('IHSG.csv')
 
-# Convert Date column to datetime format
+# mengubah format tanggal menjadi datetime
 df['Date'] = pd.to_datetime(df['Date'])
 
-# Sort dataset by date
-df = df.sort_values('Date')
+# mengubah tipe data kolom 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume' menjadi numerik
+df[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']] = df[['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']].apply(pd.to_numeric, errors='coerce')
 
-# Set Date column as index
-df.set_index('Date', inplace=True)
+# menghapus baris yang memiliki nilai null
+df.dropna(inplace=True)
 
-# Create dataframe with only the Close column
-data = df.filter(['Close'])
+# normalisasi data
+min_val = df.min()
+max_val = df.max()
+df = (df - min_val) / (max_val - min_val)
 
-# Convert dataframe to numpy array
-dataset = data.values
+# memisahkan fitur dan label
+x = df.drop(['Close'], axis=1).values.astype('float32')
+y = df['Close'].values.astype('float32')
 
-# Get number of rows to train the model on (80% of the data)
-training_data_len = int(np.ceil(0.8 * len(dataset)))
-
-# Scale the data
-scaler = MinMaxScaler(feature_range=(0, 1))
-scaled_data = scaler.fit_transform(dataset)
-
-# Load the trained model
+# memuat model
 model = load_model('best_model.h5')
 
-# Create the testing data set
-test_data = scaled_data[training_data_len-60:, :]
+# melakukan prediksi
+y_pred = model.predict(x)
 
-# Split the data into x_test and y_test sets
-x_test = []
-y_test = dataset[training_data_len:, :]
-for i in range(60, len(test_data)):
-    x_test.append(test_data[i-60:i, 0])
+# mengembalikan data ke skala aslinya
+df = df * (max_val - min_val) + min_val
+y = y * (max_val['Close'] - min_val['Close']) + min_val['Close']
+y_pred = y_pred * (max_val['Close'] - min_val['Close']) + min_val['Close']
 
-# Convert the x_test to a numpy array
-x_test = np.array(x_test)
-
-# Reshape the data
-x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
-
-# Get the model's predicted price values
-predictions = model.predict(x_test)
-predictions = scaler.inverse_transform(predictions)
-
-# Plot the actual and predicted prices
-plt.plot(y_test, label='Actual Price')
-plt.plot(predictions, label='Predicted Price')
-plt.title('Stock Price Prediction')
-plt.xlabel('Time')
-plt.ylabel('Price')
+# menampilkan grafik aktual dan prediksi
+plt.plot(df['Date'], y, label='Aktual')
+plt.plot(df['Date'], y_pred, label='Prediksi')
 plt.legend()
 plt.show()

@@ -23,6 +23,10 @@ def predict():
     train_df = df[df['Date'] < '2019-01-01']
     test_df = df[df['Date'] >= '2019-01-01']
 
+    # membuat DataFrame baru dengan kolom 'Date'
+    train_date = train_df['Date']
+    test_date = test_df['Date']
+
     # normalisasi data latih dan data uji
     train_min = train_df.min()
     train_max = train_df.max()
@@ -30,49 +34,54 @@ def predict():
     test_df = (test_df - train_min) / (train_max - train_min)
 
     # memisahkan fitur dan label
-    train_x = train_df.drop(['Close'], axis=1).values.astype('float32')
-    train_y = train_df['Close'].values.astype('float32')
     test_x = test_df.drop(['Close'], axis=1).values.astype('float32')
     test_y = test_df['Close'].values.astype('float32')
 
+    # menggabungkan kembali kolom 'Date' ke DataFrame train_df dan test_df
+    train_df['Date'] = train_date
+    test_df['Date'] = test_date
+
     # memuat model
-    model = load_model('best_model.h5')
+    model = load_model('best_model1.h5')
 
     # melakukan prediksi
     test_x = test_x.astype('float32')
     test_pred = model.predict(test_x)
 
-    # menghitung akurasi dan rmse
-    test_rmse = np.sqrt(np.mean(np.square(test_pred - test_y)))
-    accuracy_label.config(text='Akurasi (RMSE) pada data uji: {:.4f}'.format(test_rmse))
-
     # menampilkan grafik harga saham aktual dan prediksi
     fig = plt.figure(figsize=(8,6))
     plt.plot(test_df['Date'], test_y * (train_max['Close'] - train_min['Close']) + train_min['Close'], label='Actual')
     plt.plot(test_df['Date'], test_pred * (train_max['Close'] - train_min['Close']) + train_min['Close'], label='Prediction')
-    plt.title('Prediksi Harga Saham')
+    plt.title('Prediksi Harga IHSG')
     plt.xlabel('Tanggal')
-    plt.ylabel('Harga Saham (dalam Rupiah)')
+    plt.ylabel('Harga (dalam Rupiah)')
     plt.legend()
     canvas = FigureCanvasTkAgg(fig, master=canvas_frame)
     canvas.draw()
     canvas.get_tk_widget().grid(row=0, column=0)
 
+    # menampilkan label akurasi
+    test_rmse = np.sqrt(np.mean(np.square(test_pred - test_y)))
+    accuracy_label = tk.Label(root, text='Akurasi (RMSE) pada data uji: {:.4f}'.format(test_rmse), font=('Helvetica', 12))
+    accuracy_label.pack(side=tk.BOTTOM, pady=10)
+
 # membuat tampilan GUI
 root = tk.Tk()
-root.title('Prediksi Harga Saham')
-root.geometry('800x600')
+root.title('Prediksi Harga IHSG')
+root.geometry('800x740')
+
+# membuat label untuk menampilkan teks
+label = tk.Label(root, text='Prediksi Harga IHSG (Indeks Harga Saham Gabungan)', font=('Arial', 14))
+label.pack(side=tk.TOP, pady=10)
 
 # membuat frame untuk menampilkan grafik
 canvas_frame = tk.Frame(root, bg='white', bd=2, relief=tk.SUNKEN)
 canvas_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
+
+
 # membuat tombol untuk melakukan prediksi
 predict_button = tk.Button(root, text='Prediksi', command=predict)
 predict_button.pack(side=tk.TOP, pady=10)
-
-#membuat label untuk menampilkan akurasi
-accuracy_label = tk.Label(root, text='Akurasi (RMSE) pada data uji: -', font=('Helvetica', 12))
-accuracy_label.pack(side=tk.BOTTOM, pady=10)
 
 root.mainloop()
